@@ -15,28 +15,28 @@ import (
 )
 
 func CreateItem(w http.ResponseWriter, r *http.Request) {
-	var item model.Book
-	err := json.NewDecoder(r.Body).Decode(&item)
+	var book model.Book
+	err := json.NewDecoder(r.Body).Decode(&book)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	item.CreatedAt = time.Now()
-	result, err := db.Collection.InsertOne(context.Background(), item)
+	book.CreatedAt = time.Now()
+	result, err := db.Collection.InsertOne(context.Background(), book)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	item.ID = result.InsertedID.(primitive.ObjectID)
+	book.ID = result.InsertedID.(primitive.ObjectID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(item)
+	json.NewEncoder(w).Encode(book)
 }
 
 func GetItems(w http.ResponseWriter, r *http.Request) {
-	var items []model.Book
+	var books []model.Book
 	cursor, err := db.Collection.Find(context.Background(), bson.M{})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -45,13 +45,13 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
-		var item model.Book
-		cursor.Decode(&item)
-		items = append(items, item)
+		var book model.Book
+		cursor.Decode(&book)
+		books = append(books, book)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(items)
+	json.NewEncoder(w).Encode(books)
 }
 
 func GetItem(w http.ResponseWriter, r *http.Request) {
@@ -62,11 +62,11 @@ func GetItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var item model.Book
-	err = db.Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&item)
+	var book model.Book
+	err = db.Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&book)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			http.Error(w, "Item not found", http.StatusNotFound)
+			http.Error(w, "Book not found", http.StatusNotFound)
 			return
 		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,7 +74,7 @@ func GetItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(item)
+	json.NewEncoder(w).Encode(book)
 }
 
 func UpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -85,8 +85,8 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var item model.Book
-	err = json.NewDecoder(r.Body).Decode(&item)
+	var book model.Book
+	err = json.NewDecoder(r.Body).Decode(&book)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -94,9 +94,9 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 	update := bson.M{
 		"$set": bson.M{
-			"name":        item.Name,
-			"description": item.Description,
-			"price":       item.Price,
+			"name":        book.Name,
+			"description": book.Description,
+			"price":       book.Price,
 		},
 	}
 
@@ -112,7 +112,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if result.ModifiedCount == 0 {
-		http.Error(w, "Item not found", http.StatusNotFound)
+		http.Error(w, "Book not found", http.StatusNotFound)
 		return
 	}
 
@@ -134,7 +134,7 @@ func DeleteItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if result.DeletedCount == 0 {
-		http.Error(w, "Item not found", http.StatusNotFound)
+		http.Error(w, "Book not found", http.StatusNotFound)
 		return
 	}
 
