@@ -3,8 +3,10 @@ package db
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -16,7 +18,11 @@ func InitDB() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	connectionString := "mongodb+srv://sohammaha15:OCu9cwjwaI5yEHDF@cluster0.0upma.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+	if err := godotenv.Load(); err != nil {
+		log.Panic(err)
+	}
+
+	connectionString := os.Getenv("URI")
 
 	clientOptions := options.Client().ApplyURI(connectionString)
 	Client, err := mongo.Connect(ctx, clientOptions)
