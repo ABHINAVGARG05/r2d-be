@@ -7,37 +7,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Soham-Maha/r2d-be/db"
 	"github.com/Soham-Maha/r2d-be/model"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var client *mongo.Client
-var Collection *mongo.Collection
-
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	connectionString := "mongodb+srv://sohammaha15:OCu9cwjwaI5yEHDF@cluster0.0upma.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
-	clientOptions := options.Client().ApplyURI(connectionString)
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Connected to MongoDB")
-
-	Collection = client.Database("Road-to-devsoc-25").Collection("items")
+	db.InitDB()
 
 	router := mux.NewRouter()
 
@@ -60,7 +39,7 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item.CreatedAt = time.Now()
-	result, err := Collection.InsertOne(context.Background(), item)
+	result, err := db.Collection.InsertOne(context.Background(), item)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -74,7 +53,7 @@ func createItem(w http.ResponseWriter, r *http.Request) {
 
 func getItems(w http.ResponseWriter, r *http.Request) {
 	var items []model.Book
-	cursor, err := Collection.Find(context.Background(), bson.M{})
+	cursor, err := db.Collection.Find(context.Background(), bson.M{})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -100,7 +79,7 @@ func getItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var item model.Book
-	err = Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&item)
+	err = db.Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&item)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			http.Error(w, "Item not found", http.StatusNotFound)
@@ -137,7 +116,7 @@ func updateItem(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	result, err := Collection.UpdateOne(
+	result, err := db.Collection.UpdateOne(
 		context.Background(),
 		bson.M{"_id": id},
 		update,
@@ -164,7 +143,7 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := Collection.DeleteOne(context.Background(), bson.M{"_id": id})
+	result, err := db.Collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
