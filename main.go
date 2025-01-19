@@ -2,25 +2,26 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"os"
 
 	"github.com/Soham-Maha/r2d-be/controllers"
 	"github.com/Soham-Maha/r2d-be/db"
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	db.InitDB()
 
-	router := mux.NewRouter()
+	app := fiber.New()
 
-	router.HandleFunc("/items", controllers.CreateItem).Methods("POST")
-	router.HandleFunc("/items", controllers.GetItems).Methods("GET")
-	router.HandleFunc("/items/{id}", controllers.GetItem).Methods("GET")
-	router.HandleFunc("/items/{id}", controllers.UpdateItem).Methods("PUT")
-	router.HandleFunc("/items/{id}", controllers.DeleteItem).Methods("DELETE")
+	//router := mux.NewRouter()
+
+	app.Post("/items", controllers.CreateItem)
+	app.Get("/items", controllers.GetItems)
+	app.Get("/items/{id}", controllers.GetItem)
+	app.Put("/items/{id}", controllers.UpdateItem)
+	app.Delete("/items/{id}", controllers.DeleteItem)
 
 	if err := godotenv.Load(); err != nil {
 		log.Panic(err)
@@ -31,5 +32,5 @@ func main() {
 	}
 
 	log.Printf("Server is running on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(app.Listen(":"+port))
 }

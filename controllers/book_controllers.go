@@ -2,45 +2,48 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 	"time"
 
 	"github.com/Soham-Maha/r2d-be/db"
 	"github.com/Soham-Maha/r2d-be/model"
-	"github.com/gorilla/mux"
+
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func CreateItem(w http.ResponseWriter, r *http.Request) {
+func CreateItem(c* fiber.Ctx) error {
 	var book model.Book
-	err := json.NewDecoder(r.Body).Decode(&book)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+
+	if err:= c.BodyParser(&book); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":"invalid request Body",
+		})
 	}
 
 	book.CreatedAt = time.Now()
+
 	result, err := db.Collection.InsertOne(context.Background(), book)
+	
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	book.ID = result.InsertedID.(primitive.ObjectID)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(book)
+
+	return c.Status(fiber.StatusOK).JSON(book)
 }
 
-func GetItems(w http.ResponseWriter, r *http.Request) {
+func GetItems(c* fiber.Ctx) error {
 	var books []model.Book
 	cursor, err := db.Collection.Find(context.Background(), bson.M{})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 	defer cursor.Close(context.Background())
 
@@ -50,46 +53,62 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 		books = append(books, book)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(books)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"Data":books,
+	})
 }
 
-func GetItem(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(params["id"])
+func GetItem(c* fiber.Ctx) error {
+
+	bookIdParams := c.Params("bookId")
+
+	id, err := primitive.ObjectIDFromHex(bookIdParams)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	var book model.Book
+
 	err = db.Collection.FindOne(context.Background(), bson.M{"_id": id}).Decode(&book)
+
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			http.Error(w, "Book not found", http.StatusNotFound)
-			return
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error":err.Error(),
+				"Message":"Book not found",
+			})
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.ErrBadGateway.Code).JSON(fiber.Map{
+			"error":err.Error(),
+			"Message":"Internal server Error",
+		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(book)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"Data":book,
+	})
 }
 
-func UpdateItem(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(params["id"])
+func UpdateItem(c* fiber.Ctx) error {
+
+	idParams := c.Params("id")
+
+	id, err := primitive.ObjectIDFromHex(idParams)
+
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	var book model.Book
-	err = json.NewDecoder(r.Body).Decode(&book)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+
+	if err:= c.BodyParser(&book); err != nil {
+		return c.Status(fiber.ErrBadRequest.Code).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	update := bson.M{
@@ -107,36 +126,46 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	if result.ModifiedCount == 0 {
-		http.Error(w, "Book not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"Message":"Book not found",
+		})
 	}
 
-	w.WriteHeader(http.StatusOK)
+	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		"Message":"Updated Item Details",
+	})
 }
 
-func DeleteItem(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	id, err := primitive.ObjectIDFromHex(params["id"])
+func DeleteItem(c* fiber.Ctx) error {
+
+	idParams:= c.Params("id")
+
+	id, err := primitive.ObjectIDFromHex(idParams)
+
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	result, err := db.Collection.DeleteOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":err.Error(),
+		})
 	}
 
 	if result.DeletedCount == 0 {
-		http.Error(w, "Book not found", http.StatusNotFound)
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"Message":"Book not found",
+		})
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	return c.SendStatus(fiber.StatusOK)
 }

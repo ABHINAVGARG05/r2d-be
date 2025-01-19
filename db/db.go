@@ -34,8 +34,9 @@ func InitDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Connected to MongoDB")
+	log.Println("=========================================")
+	log.Println("|       Connected to MongoDB             |")
+	log.Println("=========================================")
 
 	Collection = Client.Database("Road-to-devsoc-25").Collection("items")
 }
