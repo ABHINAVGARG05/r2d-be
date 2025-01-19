@@ -95,7 +95,7 @@ This workshop is part of the **ROAD TO DEVSOC** initiative to prepare you for **
 
 ## 🤝 Contact Us
 
-- **Organizer:** **Code Chef VIT**
+- **Organizer:** **CodeChef-VIT**
 - **Instagram:**  https://www.instagram.com/codechefvit 
 - **LinkedIn:** https://www.linkedin.com/company/codechefvit
 
