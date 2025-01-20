@@ -60,7 +60,7 @@ func GetItems(c* fiber.Ctx) error {
 
 func GetItem(c* fiber.Ctx) error {
 
-	bookIdParams := c.Params("bookId")
+	bookIdParams := c.Params("id")
 
 	id, err := primitive.ObjectIDFromHex(bookIdParams)
 	if err != nil {
